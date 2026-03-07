@@ -32,7 +32,6 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             controller: controller,
             onDetect: _onDetect,
           ),
-          // Рамка для сканирования
           Center(
             child: Container(
               width: 250,
@@ -75,7 +74,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
           final product = Product.fromQRCode(barcode.rawValue!);
           
           if (mounted) {
-            _showProductInfoDialog(product);
+            _showProductInfoSnackBar(product);
           }
         } catch (e) {
           setState(() => _isProcessing = false);
@@ -85,64 +84,82 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               'Это не QR-код товара или он поврежден',
             );
           }
-          await controller.start();
         }
         break;
       }
     }
   }
 
-  void _showProductInfoDialog(Product product) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Товар найден!'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Название: ${product.name}', style: const TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text('Описание: ${product.description}'),
-            if (product.price != null) ...[
-              const SizedBox(height: 8),
-              Text('Цена: ${product.price} ₽'),
-            ],
-            const SizedBox(height: 8),
-            Text('ID: ${product.id}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _resumeScanning();
-            },
-            child: const Text('Продолжить сканирование'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ProductDetailScreen(product: product),
+  void _showProductInfoSnackBar(Product product) {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    
+    final snackBar = SnackBar(
+      duration: const Duration(seconds: 8),
+      elevation: 6,
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: Colors.blue[800],
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Товар найден: ${product.name}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
-              ).then((_) => _resumeScanning());
-            },
-            child: const Text('Перейти к товару'),
+              ),
+            ],
           ),
+          const SizedBox(height: 8),
+          Text('Описание: ${product.description}'),
+          if (product.price != null) Text('Цена: ${product.price} ₽'),
+          Text('ID: ${product.id}', style: const TextStyle(fontSize: 10)),
         ],
       ),
+      action: SnackBarAction(
+        label: 'ПЕРЕЙТИ',
+        textColor: Colors.white,
+        onPressed: () {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProductDetailScreen(product: product),
+            ),
+          ).then((_) => _resumeScanning());
+        },
+      ),
     );
+
+    ScaffoldMessenger.of(context).showSnackBar(snackBar).closed.then((reason) {
+      if (reason != SnackBarClosedReason.action) {
+        _resumeScanning();
+      }
+    });
   }
 
   void _showErrorDialog(String title, String message) {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Text(title),
+        title: Row(
+          children: [
+            const Icon(Icons.error, color: Colors.red),
+            const SizedBox(width: 8),
+            Text(title),
+          ],
+        ),
         content: Text(message),
         actions: [
           TextButton(
@@ -150,7 +167,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               Navigator.pop(context);
               _resumeScanning();
             },
-            child: const Text('OK'),
+            child: const Text('ПОНЯТНО'),
           ),
         ],
       ),

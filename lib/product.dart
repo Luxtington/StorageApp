@@ -17,7 +17,6 @@ class Product {
     this.status = ProductStatus.available,
   });
 
-  // создание товара из QR-кода
   factory Product.fromQRCode(String qrData) {
     final parts = qrData.split('|');
     if (parts.length >= 4) {
