@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:auth_front/product.dart';
+import 'package:auth_front/add_product_page.dart';
 import 'package:auth_front/product_detail_screen.dart';
 import 'package:auth_front/qr_scanner_screen.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +23,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
         title: const Text('Список товаров'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: _addProduct,
+            tooltip: 'Добавить товар',
+          ),
+          IconButton(
             icon: const Icon(Icons.qr_code_scanner),
             onPressed: _scanQRCode,
             tooltip: 'Сканировать QR-код товара',
@@ -36,20 +44,43 @@ class _ProductListScreenState extends State<ProductListScreen> {
             margin: const EdgeInsets.only(bottom: 16),
             child: ListTile(
               contentPadding: const EdgeInsets.all(12),
-              leading: Image.asset(
-                product.imagePath,
-                width: 80,
-                height: 80,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    width: 80,
-                    height: 80,
-                    color: Colors.grey,
-                    child: const Icon(Icons.broken_image),
-                  );
-                },
-              ),
+              leading: FutureBuilder<bool>(
+  future: File(product.imagePath).exists(),
+  builder: (context, snapshot) {
+    if (snapshot.hasData && snapshot.data == true) {
+      return Image.file(
+        File(product.imagePath),
+        width: 80,
+        height: 80,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          print('Ошибка загрузки: $error');
+          return Container(
+            width: 80,
+            height: 80,
+            color: Colors.grey,
+            child: const Icon(Icons.broken_image),
+          );
+        },
+      );
+    } else {
+      return Image.asset(
+        'assets/placeholder.png',
+        width: 80,
+        height: 80,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            width: 80,
+            height: 80,
+            color: Colors.grey,
+            child: const Icon(Icons.image_not_supported),
+          );
+        },
+      );
+    }
+  },
+),
               title: Text(
                 product.name,
                 style: const TextStyle(fontWeight: FontWeight.bold),
@@ -93,6 +124,26 @@ class _ProductListScreenState extends State<ProductListScreen> {
         },
       ),
     );
+  }
+
+    void _addProduct() async {
+    final result = await Navigator.push<Product>(
+      context,
+      MaterialPageRoute(builder: (context) => const AddProductScreen()),
+    );
+
+    if (result != null) {
+      setState(() {
+        products.add(result);
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Товар "${result.name}" добавлен'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
   }
 
   void _scanQRCode() {

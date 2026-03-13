@@ -128,7 +128,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       ),
       action: SnackBarAction(
         label: 'ПЕРЕЙТИ',
-        textColor: Colors.white,
+        textColor: const Color.fromARGB(255, 43, 34, 229),
         onPressed: () {
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
           Navigator.push(

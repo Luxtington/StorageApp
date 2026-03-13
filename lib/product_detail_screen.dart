@@ -25,7 +25,6 @@ class ProductDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Изображение товара
             Center(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
@@ -47,7 +46,6 @@ class ProductDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             
-            // Информация о товаре
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -75,7 +73,6 @@ class ProductDetailScreen extends StatelessWidget {
             
             const SizedBox(height: 20),
             
-            // Кнопка для генерации QR-кода
             Center(
               child: ElevatedButton.icon(
                 onPressed: () => _showQRCodeDialog(context),
@@ -121,7 +118,7 @@ class ProductDetailScreen extends StatelessWidget {
           ),
           child: Container(
             padding: const EdgeInsets.all(20),
-            width: 300, // Фиксированная ширина
+            width: 300, 
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
