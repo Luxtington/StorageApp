@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:auth_front/product.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -28,20 +30,7 @@ class ProductDetailScreen extends StatelessWidget {
             Center(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.asset(
-                  product.imagePath,
-                  height: 200,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      height: 200,
-                      color: Colors.grey,
-                      child: const Center(
-                        child: Icon(Icons.broken_image, size: 50),
-                      ),
-                    );
-                  },
-                ),
+                child: _buildProductImage(), // ← ИСПОЛЬЗУЕМ НОВЫЙ МЕТОД
               ),
             ),
             const SizedBox(height: 20),
@@ -86,6 +75,43 @@ class ProductDetailScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  // ✅ НОВЫЙ МЕТОД для отображения фото (и assets, и файлы)
+  Widget _buildProductImage() {
+    // Для asset-изображений (моковые данные)
+    if (product.imagePath.startsWith('assets/')) {
+      return Image.asset(
+        product.imagePath,
+        height: 200,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            height: 200,
+            color: Colors.grey,
+            child: const Center(
+              child: Icon(Icons.broken_image, size: 50),
+            ),
+          );
+        },
+      );
+    }
+    
+    return Image.file(
+      File(product.imagePath),
+      height: 200,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        print('Ошибка загрузки файла: ${product.imagePath}');
+        return Container(
+          height: 200,
+          color: Colors.grey,
+          child: const Center(
+            child: Icon(Icons.broken_image, size: 50),
+          ),
+        );
+      },
     );
   }
 

@@ -1,10 +1,11 @@
-import 'dart:io';
+import 'dart:io';  // Этот импорт нужен для File в других местах
 
 import 'package:auth_front/product.dart';
 import 'package:auth_front/add_product_page.dart';
 import 'package:auth_front/product_detail_screen.dart';
 import 'package:auth_front/qr_scanner_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:auth_front/product_image.dart';
 
 class ProductListScreen extends StatefulWidget {
   const ProductListScreen({super.key});
@@ -44,43 +45,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
             margin: const EdgeInsets.only(bottom: 16),
             child: ListTile(
               contentPadding: const EdgeInsets.all(12),
-              leading: FutureBuilder<bool>(
-  future: File(product.imagePath).exists(),
-  builder: (context, snapshot) {
-    if (snapshot.hasData && snapshot.data == true) {
-      return Image.file(
-        File(product.imagePath),
-        width: 80,
-        height: 80,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          print('Ошибка загрузки: $error');
-          return Container(
-            width: 80,
-            height: 80,
-            color: Colors.grey,
-            child: const Icon(Icons.broken_image),
-          );
-        },
-      );
-    } else {
-      return Image.asset(
-        'assets/placeholder.png',
-        width: 80,
-        height: 80,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return Container(
-            width: 80,
-            height: 80,
-            color: Colors.grey,
-            child: const Icon(Icons.image_not_supported),
-          );
-        },
-      );
-    }
-  },
-),
+              leading: ProductImage(  
+                imagePath: product.imagePath,
+                width: 80,
+                height: 80,
+              ),
               title: Text(
                 product.name,
                 style: const TextStyle(fontWeight: FontWeight.bold),
@@ -126,7 +95,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     );
   }
 
-    void _addProduct() async {
+  void _addProduct() async {
     final result = await Navigator.push<Product>(
       context,
       MaterialPageRoute(builder: (context) => const AddProductScreen()),
