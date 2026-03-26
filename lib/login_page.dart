@@ -1,127 +1,52 @@
-import 'package:auth_front/product_list_page.dart';
-import 'package:auth_front/user_service.dart' as userService;
-import 'package:email_validator/email_validator.dart';
+import 'package:auth_front/user.dart';
 import 'package:flutter/material.dart';
+import 'package:auth_front/user_service.dart';
+import 'package:auth_front/product_list_page.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginPage> {
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
+class _LoginScreenState extends State<LoginScreen> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _nameController = TextEditingController();
+  final UserService _userService = UserService();  // ← UserService
+  bool _isLogin = true;
+  bool _isLoading = false;
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Вход'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              const SizedBox(height: 50),
-              const Text(
-                'Вход в аккаунт',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 30),
-              
-              TextFormField(
-                controller: emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.email),
-                ),
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Пожалуйста, введите email';
-                  }
-                  if (!EmailValidator.validate(value)) {
-                    return 'Невалидный формат email';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 15),
-              
-              TextFormField(
-                controller: passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Пароль',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Пожалуйста, введите пароль';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 30),
+  Future<void> _submit() async {
+    setState(() => _isLoading = true);
 
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 50),
-                ),
-                onPressed: login,
-                child: const Text(
-                  'Войти',
-                  style: TextStyle(color: Colors.black),
-                ),
-              ),
-              const SizedBox(height: 20),
-              
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text('Нет аккаунта? Зарегистрироваться'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void login() {
-    if (!_formKey.currentState!.validate()) {
-      return;
+    User? user;
+    if (_isLogin) {
+      user = await _userService.login(_emailController.text, _passwordController.text);
+    } else {
+      user = await _userService.register(
+        _nameController.text,
+        _emailController.text,
+        _passwordController.text,
+      );
     }
 
-    if (userService.isUserExistsByEmail(emailController.text)) {
-      if (userService.isCorrectUserDetails(emailController.text, passwordController.text)) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const ProductListScreen(),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Неправильный пароль'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    setState(() => _isLoading = false);
+
+    if (user != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ProductListScreen(user: user!),
+        ),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Пользователь с таким email не найден'),
+          content: Text(_isLogin 
+              ? 'Неверный email или пароль' 
+              : 'Пользователь с таким email уже существует'),
           backgroundColor: Colors.red,
         ),
       );
@@ -129,9 +54,73 @@ class _LoginScreenState extends State<LoginPage> {
   }
 
   @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_isLogin ? 'Вход' : 'Регистрация'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (!_isLogin)
+              TextField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Имя',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            if (!_isLogin) const SizedBox(height: 12),
+            TextField(
+              controller: _emailController,
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.emailAddress,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _passwordController,
+              decoration: const InputDecoration(
+                labelText: 'Пароль',
+                border: OutlineInputBorder(),
+              ),
+              obscureText: true,
+            ),
+            const SizedBox(height: 20),
+            _isLoading
+                ? const CircularProgressIndicator()
+                : ElevatedButton(
+                    onPressed: _submit,
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 50),
+                    ),
+                    child: Text(_isLogin ? 'Войти' : 'Зарегистрироваться'),
+                  ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _isLogin = !_isLogin;
+                });
+              },
+              child: Text(_isLogin 
+                  ? 'Нет аккаунта? Зарегистрироваться' 
+                  : 'Уже есть аккаунт? Войти'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
   void dispose() {
-    emailController.dispose();
-    passwordController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 }

@@ -6,7 +6,7 @@ class Product {
   final String description;
   final String imagePath;
   final double? price;
-  final ProductStatus status;
+  ProductStatus status;
 
   Product({
     required this.id,
@@ -16,6 +16,30 @@ class Product {
     this.price,
     this.status = ProductStatus.available,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'image_path': imagePath,
+      'price': price,
+      'status': status.toString().split('.').last,
+    };
+  }
+
+  factory Product.fromMap(Map<String, dynamic> map) {
+    return Product(
+      id: map['id'],
+      name: map['name'],
+      description: map['description'],
+      imagePath: map['image_path'],
+      price: map['price'],
+      status: map['status'] == 'available' 
+          ? ProductStatus.available 
+          : ProductStatus.busy,
+    );
+  }
 
   factory Product.fromQRCode(String qrData) {
     final parts = qrData.split('|');
@@ -80,9 +104,5 @@ class Product {
         price: 20000,
       ),
     ];
-  }
-
-  String get imageFileName {
-    return imagePath.split('/').last;
   }
 }

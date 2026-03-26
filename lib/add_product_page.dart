@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:auth_front/product.dart';
+import 'package:auth_front/user.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 class AddProductScreen extends StatefulWidget {
-  const AddProductScreen({super.key});
+  final User user;
+  const AddProductScreen({super.key, required this.user});
 
   @override
   State<AddProductScreen> createState() => _AddProductScreenState();
@@ -18,11 +20,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
-  
+
   File? _selectedImage;
   String? _savedImagePath;
   final ImagePicker _picker = ImagePicker();
-  
+
   Product? _generatedProduct;
   String? _qrCodeData;
 
@@ -37,15 +39,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
       if (image != null) {
         final String permanentPath = await _saveImagePermanently(image);
-        
+
         setState(() {
           _selectedImage = File(image.path);
           _savedImagePath = permanentPath;
         });
-
-        final fileExists = await File(permanentPath).exists();
-        print('Файл сохранен по пути: $permanentPath');
-        print('Файл существует: $fileExists');
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -55,7 +53,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
         );
       }
     } catch (e) {
-      print('Ошибка загрузки: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Ошибка загрузки: $e'),
@@ -66,25 +63,51 @@ class _AddProductScreenState extends State<AddProductScreen> {
   }
 
   Future<String> _saveImagePermanently(XFile image) async {
-    try {
-      final Directory appDocDir = await getApplicationDocumentsDirectory();
-      
-      final Directory productsDir = Directory('${appDocDir.path}/product_images');
-      if (!await productsDir.exists()) {
-        await productsDir.create(recursive: true);
-      }
-      
-      final String fileName = 'product_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final String savedPath = '${productsDir.path}/$fileName';
-      
-      final File tempFile = File(image.path);
-      final File savedFile = await tempFile.copy(savedPath);
-      
-      print('Фото сохранено: $savedPath');
-      return savedPath;
-    } catch (e) {
-      print('Ошибка сохранения: $e');
-      rethrow;
+    final Directory appDocDir = await getApplicationDocumentsDirectory();
+    final Directory productsDir = Directory('${appDocDir.path}/product_images');
+
+    if (!await productsDir.exists()) {
+      await productsDir.create(recursive: true);
+    }
+
+    final String fileName =
+        'product_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final String savedPath = '${productsDir.path}/$fileName';
+
+    final File tempFile = File(image.path);
+    await tempFile.copy(savedPath);
+
+    return savedPath;
+  }
+
+  void _generateQRCode() {
+    if (_formKey.currentState!.validate() && _savedImagePath != null) {
+      final id = 'PROD_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(1000)}';
+
+      final product = Product(
+        id: id,
+        name: _nameController.text,
+        description: _descriptionController.text,
+        imagePath: _savedImagePath!,
+        price: _priceController.text.isNotEmpty
+            ? double.tryParse(_priceController.text)
+            : null,
+      );
+
+      setState(() {
+        _generatedProduct = product;
+        _qrCodeData = product.toQRCodeString();
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('QR-код успешно сгенерирован')),
+      );
+    }
+  }
+
+  void _saveProduct() {
+    if (_generatedProduct != null) {
+      Navigator.pop(context, _generatedProduct);
     }
   }
 
@@ -114,34 +137,23 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      
+
+                      // Загрузка изображения
                       Container(
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.grey.shade300),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Column(
-                          children: [
-                            if (_selectedImage != null) ...[
-                              Container(
+                        child: _selectedImage != null
+                            ? Container(
                                 height: 200,
                                 width: double.infinity,
                                 child: Image.file(
                                   _selectedImage!,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    print('Ошибка загрузки превью: $error');
-                                    return Container(
-                                      color: Colors.grey,
-                                      child: const Center(
-                                        child: Icon(Icons.error, size: 50),
-                                      ),
-                                    );
-                                  },
                                 ),
-                              ),
-                            ] else ...[
-                              InkWell(
+                              )
+                            : InkWell(
                                 onTap: _pickImage,
                                 child: Container(
                                   height: 150,
@@ -169,12 +181,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                   ),
                                 ),
                               ),
-                            ],
-                          ],
-                        ),
                       ),
                       const SizedBox(height: 16),
-                      
+
                       TextFormField(
                         controller: _nameController,
                         decoration: const InputDecoration(
@@ -189,7 +198,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         },
                       ),
                       const SizedBox(height: 12),
-                      
+
                       TextFormField(
                         controller: _descriptionController,
                         decoration: const InputDecoration(
@@ -205,7 +214,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         },
                       ),
                       const SizedBox(height: 12),
-                      
+
                       TextFormField(
                         controller: _priceController,
                         decoration: const InputDecoration(
@@ -216,18 +225,20 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         keyboardType: TextInputType.number,
                       ),
                       const SizedBox(height: 20),
-                      
+
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: _selectedImage == null ? null : _generateQRCode,
+                          onPressed:
+                              _savedImagePath == null ? null : _generateQRCode,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: _selectedImage == null ? Colors.grey : Colors.blue,
+                            backgroundColor:
+                                _savedImagePath == null ? Colors.grey : Colors.blue,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                           ),
                           child: Text(
-                            _selectedImage == null 
-                                ? 'Сначала загрузите изображение' 
+                            _savedImagePath == null
+                                ? 'Сначала загрузите изображение'
                                 : 'Сгенерировать QR-код',
                             style: const TextStyle(fontSize: 16),
                           ),
@@ -238,7 +249,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 ),
               ),
             ),
-            
+
             if (_generatedProduct != null && _qrCodeData != null) ...[
               const SizedBox(height: 20),
               Card(
@@ -248,7 +259,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     children: [
                       const Text(
                         'QR-код товара',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 20),
                       QrImageView(
@@ -281,44 +295,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
         ),
       ),
     );
-  }
-
-  void _generateQRCode() {
-    if (_formKey.currentState!.validate() && _selectedImage != null && _savedImagePath != null) {
-      final id = 'PROD_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(1000)}';
-      
-      final product = Product(
-        id: id,
-        name: _nameController.text,
-        description: _descriptionController.text,
-        imagePath: _savedImagePath!,
-        price: _priceController.text.isNotEmpty 
-            ? double.tryParse(_priceController.text) 
-            : null,
-      );
-      
-      setState(() {
-        _generatedProduct = product;
-        _qrCodeData = product.toQRCodeString();
-      });
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('QR-код успешно сгенерирован')),
-      );
-    }
-  }
-
-  void _saveProduct() {
-    if (_generatedProduct != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Товар "${_generatedProduct!.name}" сохранен'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      
-      Navigator.pop(context, _generatedProduct);
-    }
   }
 
   @override

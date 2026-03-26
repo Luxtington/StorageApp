@@ -1,24 +1,52 @@
-import 'dart:io';
-
-import 'package:auth_front/product.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:auth_front/product.dart';
+import 'package:auth_front/user.dart';
+import 'package:auth_front/product_service.dart';
+import 'package:auth_front/product_image.dart';
 
-class ProductDetailScreen extends StatelessWidget {
+class ProductDetailScreen extends StatefulWidget {
   final Product product;
+  final User user;
+  const ProductDetailScreen({
+    super.key,
+    required this.product,
+    required this.user,
+  });
 
-  const ProductDetailScreen({super.key, required this.product});
+  @override
+  State<ProductDetailScreen> createState() => _ProductDetailScreenState();
+}
+
+class _ProductDetailScreenState extends State<ProductDetailScreen> {
+  late Product _product;
+  final ProductService _productService = ProductService();
+
+  @override
+  void initState() {
+    super.initState();
+    _product = widget.product;
+  }
+
+  Future<void> _refreshProduct() async {
+    final updated = await _productService.getProductById(widget.product.id);
+    if (updated != null) {
+      setState(() {
+        _product = updated;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(product.name),
+        title: Text(_product.name),
         actions: [
           IconButton(
             icon: const Icon(Icons.qr_code),
             onPressed: () => _showQRCodeDialog(context),
-            tooltip: 'Показать QR-код товара',
+            tooltip: 'Показать QR-код',
           ),
         ],
       ),
@@ -30,11 +58,16 @@ class ProductDetailScreen extends StatelessWidget {
             Center(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: _buildProductImage(), // ← ИСПОЛЬЗУЕМ НОВЫЙ МЕТОД
+                child: ProductImage(
+                  imagePath: _product.imagePath,
+                  width: double.infinity,
+                  height: 200,
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
             const SizedBox(height: 20),
-            
+
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -43,75 +76,71 @@ class ProductDetailScreen extends StatelessWidget {
                   children: [
                     const Text(
                       'Информация о товаре',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const Divider(),
-                    _buildInfoRow('ID', product.id),
-                    _buildInfoRow('Название', product.name),
-                    _buildInfoRow('Описание', product.description),
-                    if (product.price != null)
-                      _buildInfoRow('Цена', '${product.price} ₽'),
+                    _buildInfoRow('ID', _product.id),
+                    _buildInfoRow('Название', _product.name),
+                    _buildInfoRow('Описание', _product.description),
+                    if (_product.price != null)
+                      _buildInfoRow('Цена', '${_product.price} ₽'),
                     _buildInfoRow(
                       'Статус',
-                      product.status == ProductStatus.available ? 'Свободен' : 'Занят',
+                      _product.status == ProductStatus.available
+                          ? 'Свободен'
+                          : 'Занят',
                     ),
                   ],
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 20),
-            
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _toggleProductStatus,
+                icon: Icon(
+                  _product.status == ProductStatus.available
+                      ? Icons.shopping_cart
+                      : Icons.assignment_return,
+                ),
+                label: Text(
+                  _product.status == ProductStatus.available
+                      ? 'Взять товар'
+                      : 'Вернуть товар',
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _product.status == ProductStatus.available
+                      ? Colors.green
+                      : Colors.orange,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
             Center(
               child: ElevatedButton.icon(
                 onPressed: () => _showQRCodeDialog(context),
                 icon: const Icon(Icons.qr_code),
-                label: const Text('Сгенерировать QR-код товара'),
+                label: const Text('Показать QR-код товара'),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  // ✅ НОВЫЙ МЕТОД для отображения фото (и assets, и файлы)
-  Widget _buildProductImage() {
-    // Для asset-изображений (моковые данные)
-    if (product.imagePath.startsWith('assets/')) {
-      return Image.asset(
-        product.imagePath,
-        height: 200,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return Container(
-            height: 200,
-            color: Colors.grey,
-            child: const Center(
-              child: Icon(Icons.broken_image, size: 50),
-            ),
-          );
-        },
-      );
-    }
-    
-    return Image.file(
-      File(product.imagePath),
-      height: 200,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) {
-        print('Ошибка загрузки файла: ${product.imagePath}');
-        return Container(
-          height: 200,
-          color: Colors.grey,
-          child: const Center(
-            child: Icon(Icons.broken_image, size: 50),
-          ),
-        );
-      },
     );
   }
 
@@ -125,13 +154,46 @@ class ProductDetailScreen extends StatelessWidget {
             width: 80,
             child: Text(
               '$label:',
-              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+              ),
             ),
           ),
           Expanded(child: Text(value)),
         ],
       ),
     );
+  }
+
+  Future<void> _toggleProductStatus() async {
+    bool success;
+    String message;
+
+    if (_product.status == ProductStatus.available) {
+      success = await _productService.takeProduct(_product.id, widget.user);
+      message = 'Товар "${_product.name}" взят';
+    } else {
+      success = await _productService.returnProduct(_product.id, widget.user);
+      message = 'Товар "${_product.name}" возвращен';
+    }
+
+    if (success) {
+      await _refreshProduct();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Не удалось выполнить операцию'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _showQRCodeDialog(BuildContext context) {
@@ -144,7 +206,7 @@ class ProductDetailScreen extends StatelessWidget {
           ),
           child: Container(
             padding: const EdgeInsets.all(20),
-            width: 300, 
+            width: 300,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -161,7 +223,7 @@ class ProductDetailScreen extends StatelessWidget {
                     border: Border.all(color: Colors.grey.shade300),
                   ),
                   child: QrImageView(
-                    data: product.toQRCodeString(),
+                    data: _product.toQRCodeString(),
                     version: QrVersions.auto,
                     size: 200,
                     backgroundColor: Colors.white,
@@ -169,21 +231,21 @@ class ProductDetailScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  product.name,
+                  _product.name,
                   style: const TextStyle(fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  product.description,
+                  _product.description,
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                if (product.price != null) ...[
+                if (_product.price != null) ...[
                   const SizedBox(height: 4),
                   Text(
-                    'Цена: ${product.price} ₽',
+                    'Цена: ${_product.price} ₽',
                     style: const TextStyle(fontWeight: FontWeight.w500),
                   ),
                 ],

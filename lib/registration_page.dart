@@ -1,5 +1,5 @@
 import 'package:auth_front/login_page.dart';
-import 'package:auth_front/user_service.dart' as userService;
+import 'package:auth_front/user_service.dart';
 import 'package:flutter/material.dart';
 import 'package:email_validator/email_validator.dart';
 
@@ -7,17 +7,18 @@ class RegistrationPage extends StatefulWidget {
   const RegistrationPage({super.key});
 
   @override
-  State<RegistrationPage> createState() => _RegisterScreenState();
+  State<RegistrationPage> createState() => _RegistrationPageState();
 }
 
-class _RegisterScreenState extends State<RegistrationPage> {
+class _RegistrationPageState extends State<RegistrationPage> {
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmController = TextEditingController();
 
-  final nameController = TextEditingController();
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
-  final confirmController = TextEditingController();
-
-  final _formKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final UserService _userService = UserService();
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -130,27 +131,29 @@ class _RegisterScreenState extends State<RegistrationPage> {
               ),
               const SizedBox(height: 30),
 
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                onPressed: _register,
-                child: const Text(
-                  'Зарегистрироваться',
-                  style: TextStyle(color: Colors.black, fontSize: 16),
-                ),
-              ),
+              _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        minimumSize: const Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: _register,
+                      child: const Text(
+                        'Зарегистрироваться',
+                        style: TextStyle(color: Colors.black, fontSize: 16),
+                      ),
+                    ),
               const SizedBox(height: 15),
 
               TextButton(
                 onPressed: () {
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (context) => const LoginPage()),
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
                   );
                 },
                 child: const Text('Уже есть аккаунт? Войти'),
@@ -163,31 +166,35 @@ class _RegisterScreenState extends State<RegistrationPage> {
     );
   }
 
-  void _register() {
+  Future<void> _register() async {
     if (_formKey.currentState!.validate()) {
-      try {
-        userService.saveUser(
-          nameController.text,
-          emailController.text,
-          passwordController.text,
-        );
+      setState(() => _isLoading = true);
 
+      final user = await _userService.register(
+        nameController.text,
+        emailController.text,
+        passwordController.text,
+      );
+
+      setState(() => _isLoading = false);
+
+      if (user != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Регистрация прошла успешно!'),
+          const SnackBar(
+            content: Text('Регистрация прошла успешно!'),
             backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
+            duration: Duration(seconds: 2),
           ),
         );
 
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const LoginPage()),
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
         );
-      } catch (e) {
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Ошибка при регистрации: ${e.toString()}'),
+          const SnackBar(
+            content: Text('Пользователь с таким email уже существует'),
             backgroundColor: Colors.red,
           ),
         );
