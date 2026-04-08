@@ -28,7 +28,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     _product = widget.product;
   }
 
-  Future<void> _refreshProduct() async {
+  Future<void> _getActualProduct() async {
     final updated = await _productService.getProductById(widget.product.id);
     if (updated != null) {
       setState(() {
@@ -179,7 +179,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
 
     if (success) {
-      await _refreshProduct();
+      await _getActualProduct();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),

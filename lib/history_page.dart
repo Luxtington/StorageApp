@@ -29,12 +29,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Future<void> _loadHistory() async {
     setState(() => _isLoading = true);
     
-    // Получаем всю историю
     final db = await _productService.dbHelper.open();
     final historyData = await db.query('product_history');
     history = historyData.map((h) => ProductHistory.fromMap(h)).toList();
     
-    // Загружаем названия товаров
     for (var h in history) {
       if (!productNames.containsKey(h.productId)) {
         final product = await _productService.getProductById(h.productId);
@@ -108,7 +106,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Товар и статус
                             Row(
                               children: [
                                 Icon(
@@ -150,7 +147,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             ),
                             const Divider(),
                             
-                            // Пользователь
                             Row(
                               children: [
                                 const Icon(Icons.person, size: 16, color: Colors.grey),
@@ -163,7 +159,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             ),
                             const SizedBox(height: 8),
                             
-                            // Дата взятия
                             Row(
                               children: [
                                 const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
@@ -175,7 +170,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               ],
                             ),
                             
-                            // Дата возврата (если есть)
                             if (isReturned) ...[
                               const SizedBox(height: 8),
                               Row(
@@ -190,7 +184,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               ),
                             ],
                             
-                            // ID товара (мелким шрифтом)
+
                             const SizedBox(height: 8),
                             Text(
                               'ID товара: ${h.productId}',

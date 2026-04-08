@@ -6,7 +6,7 @@ import 'package:auth_front/product.dart';
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
   factory DatabaseHelper() => _instance;
-  DatabaseHelper._internal();
+  DatabaseHelper._internal(); // возвращаем один и тот же снглтон
 
   static Database? _database;
 
