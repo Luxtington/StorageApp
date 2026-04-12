@@ -1,38 +1,40 @@
 import 'package:auth_front/db_helper.dart';
 import 'package:auth_front/user.dart';
+import 'package:auth_front/firebase_service.dart';
+import 'package:sqflite/sqflite.dart';
 
 class UserService {
   final DatabaseHelper _dbHelper = DatabaseHelper();
+  final FirebaseService _firebase = FirebaseService();
 
   Future<User?> register(String name, String email, String password) async {
+    final firebaseUser = await _firebase.registerWithEmail(name, email, password);
+    
+    if (firebaseUser == null) return null;
+    
     final db = await _dbHelper.open();
-    
     final existing = await db.query('users', where: 'email = ?', whereArgs: [email]);
-    if (existing.isNotEmpty) return null;
-
-    final newUser = User(
-      name: name,
-      email: email,
-      password: password,
-      role: 'user',
-    );
-
-    await db.insert('users', newUser.toMap());
     
-    final created = await db.query('users', where: 'email = ?', whereArgs: [email]);
-    return User.fromMap(created.first);
+    if (existing.isEmpty) {
+      await db.insert('users', firebaseUser.toMap());
+    }
+    
+    return firebaseUser;
   }
 
   Future<User?> login(String email, String password) async {
-    final db = await _dbHelper.open();
+    final firebaseUser = await _firebase.loginWithEmail(email, password);
     
-    final users = await db.query(
-      'users',
-      where: 'email = ? AND password = ?',
-      whereArgs: [email, password],
+    if (firebaseUser == null) return null;
+    
+    final db = await _dbHelper.open();
+    await db.insert(
+      'users', 
+      firebaseUser.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
     
-    return users.isNotEmpty ? User.fromMap(users.first) : null;
+    return firebaseUser;
   }
 
   Future<bool> isUserExistsByEmail(String email) async {
@@ -52,7 +54,17 @@ class UserService {
     return users.isNotEmpty ? User.fromMap(users.first) : null;
   }
 
+  Future<User?> getUserByEmail(String email) async {
+    final db = await _dbHelper.open();
+    final users = await db.query('users', where: 'email = ?', whereArgs: [email]);
+    return users.isNotEmpty ? User.fromMap(users.first) : null;
+  }
+
   bool canCreateProduct(User user) {
     return user.role == 'admin';
+  }
+
+  Future<void> logout() async {
+    await _firebase.logout();
   }
 }

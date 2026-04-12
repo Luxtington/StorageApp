@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "748281791391",
+    "project_id": "authfront-64069",
+    "storage_bucket": "authfront-64069.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:748281791391:android:ecd792dab3df83670a73aa",
+        "android_client_info": {
+          "package_name": "com.example.auth_front"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCwQOsQ89Nhiayvvt2bDJN6Zk3iahreAlU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

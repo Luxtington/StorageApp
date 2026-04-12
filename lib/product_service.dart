@@ -2,11 +2,15 @@ import 'package:auth_front/db_helper.dart';
 import 'package:auth_front/product.dart';
 import 'package:auth_front/product_history.dart';
 import 'package:auth_front/user.dart';
+import 'package:auth_front/firebase_service.dart';
 
 class ProductService {
   final DatabaseHelper dbHelper = DatabaseHelper();
+  final FirebaseService _firebase = FirebaseService();
 
   Future<List<Product>> getAllProducts() async {
+    await _syncProductsFromFirebase();
+    
     final db = await dbHelper.open();
     final products = await db.query('products');
     return products.map((p) => Product.fromMap(p)).toList();
@@ -19,16 +23,32 @@ class ProductService {
   }
 
   Future<void> addProduct(Product product) async {
+    final hasInternet = await _firebase.hasInternetConnection();
+    
+    if (hasInternet) {
+      await _firebase.addProductToFirestore(product);
+    }
+
     final db = await dbHelper.open();
     await db.insert('products', product.toMap());
   }
 
   Future<bool> takeProduct(String productId, User user) async {
+    final hasInternet = await _firebase.hasInternetConnection();
     final db = await dbHelper.open();
     
     final product = await getProductById(productId);
     if (product == null) return false;
     if (product.status != ProductStatus.available) return false;
+
+    if (hasInternet) {
+      await _firebase.updateProductStatus(productId, ProductStatus.busy);
+      await _firebase.addHistoryEntry(
+        productId: productId,
+        userId: user.id.toString(),
+        takenAt: DateTime.now(),
+      );
+    }
 
     await db.update(
       'products',
@@ -48,11 +68,16 @@ class ProductService {
   }
 
   Future<bool> returnProduct(String productId, User user) async {
+    final hasInternet = await _firebase.hasInternetConnection();
     final db = await dbHelper.open();
     
     final product = await getProductById(productId);
     if (product == null) return false;
     if (product.status != ProductStatus.busy) return false;
+
+    if (hasInternet) {
+      await _firebase.updateProductStatus(productId, ProductStatus.available);
+    }
 
     final history = await db.query(
       'product_history',
@@ -60,14 +85,14 @@ class ProductService {
       whereArgs: [productId],
     );
 
-    if (history.isEmpty) return false;
-
-    await db.update(
-      'product_history',
-      {'returned_at': DateTime.now().toIso8601String()},
-      where: 'id = ?',
-      whereArgs: [history.first['id']],
-    );
+    if (history.isNotEmpty) {
+      await db.update(
+        'product_history',
+        {'returned_at': DateTime.now().toIso8601String()},
+        where: 'id = ?',
+        whereArgs: [history.first['id']],
+      );
+    }
 
     await db.update(
       'products',
@@ -97,5 +122,28 @@ class ProductService {
       whereArgs: [userId],
     );
     return history.map((h) => ProductHistory.fromMap(h)).toList();
+  }
+
+  Future<void> _syncProductsFromFirebase() async {
+    final hasInternet = await _firebase.hasInternetConnection();
+    if (!hasInternet) return;
+    
+    final db = await dbHelper.open();
+    
+    try {
+      final firebaseProducts = await _firebase.getProductsStream().first;
+      
+      await db.delete('products');
+      
+      for (var product in firebaseProducts) {
+        await db.insert('products', product.toMap());
+      }
+    } catch (e) {
+      print('Ошибка синхронизации: $e');
+    }
+  }
+
+  Future<void> syncNow() async {
+    await _syncProductsFromFirebase();
   }
 }
