@@ -37,6 +37,29 @@ class UserService {
     return firebaseUser;
   }
 
+  Future<bool> isAdminExistsInFirebase() async {
+  try {
+    final db = await _dbHelper.open();
+    final users = await db.query('users', where: 'role = ?', whereArgs: ['admin']);
+    return users.isNotEmpty;
+  } catch (e) {
+    return false;
+  }
+}
+
+Future<void> setUserRole(String email, String role) async {
+  final user = await _firebase.loginWithEmail(email, 'admin123');
+  if (user != null) {
+    final db = await _dbHelper.open();
+    await db.update(
+      'users',
+      {'role': role},
+      where: 'email = ?',
+      whereArgs: [email],
+    );
+  }
+}
+
   Future<bool> isUserExistsByEmail(String email) async {
     final db = await _dbHelper.open();
     final users = await db.query('users', where: 'email = ?', whereArgs: [email]);
