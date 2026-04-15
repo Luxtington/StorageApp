@@ -1,11 +1,14 @@
 import 'package:auth_front/db_helper.dart';
 import 'package:auth_front/user.dart';
 import 'package:auth_front/firebase_service.dart';
-import 'package:sqflite/sqflite.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide User;
 
 class UserService {
   final DatabaseHelper _dbHelper = DatabaseHelper();
   final FirebaseService _firebase = FirebaseService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<User?> register(String name, String email, String password) async {
     final firebaseUser = await _firebase.registerWithEmail(name, email, password);
@@ -22,20 +25,40 @@ class UserService {
     return firebaseUser;
   }
 
-  Future<User?> login(String email, String password) async {
-    final firebaseUser = await _firebase.loginWithEmail(email, password);
-    
-    if (firebaseUser == null) return null;
-    
-    final db = await _dbHelper.open();
-    await db.insert(
-      'users', 
-      firebaseUser.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
+Future<User?> login(String email, String password) async {
+  try {
+    final userCredential = await _auth.signInWithEmailAndPassword(
+      email: email,
+      password: password,
     );
     
-    return firebaseUser;
+    final userDoc = await _firestore
+        .collection('users')
+        .where('email', isEqualTo: email)
+        .get();
+    
+    String role = 'user';
+    if (userDoc.docs.isNotEmpty) {
+      role = userDoc.docs.first.data()['role'] ?? 'user';
+    }
+    
+    final db = await _dbHelper.open();
+    final localUser = User(
+      id: 0,
+      name: userDoc.docs.first.data()['name'] ?? email.split('@').first,
+      email: email,
+      password: password,
+      role: role,
+    );
+    
+    await db.insert('users', localUser.toMap());
+    
+    return localUser;
+  } catch (e) {
+    print('Ошибка входа: $e');
+    return null;
   }
+}
 
   Future<bool> isAdminExistsInFirebase() async {
   try {
