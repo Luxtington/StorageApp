@@ -10,20 +10,56 @@ class UserService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<User?> register(String name, String email, String password) async {
-    final firebaseUser = await _firebase.registerWithEmail(name, email, password);
+Future<User?> register(String name, String email, String password) async {
+  try {
+    final userCredential = await _auth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
     
-    if (firebaseUser == null) return null;
+
+    final usersCount = await _firestore.collection('users').get();
+    String role = usersCount.docs.isEmpty ? 'admin' : 'user';
+    
+    await _firestore.collection('users').doc(userCredential.user!.uid).set({
+      'name': name,
+      'email': email,
+      'role': role,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
     
     final db = await _dbHelper.open();
-    final existing = await db.query('users', where: 'email = ?', whereArgs: [email]);
+    final existingUsers = await db.query(
+      'users',
+      where: 'email = ?',
+      whereArgs: [email],
+    );
     
-    if (existing.isEmpty) {
-      await db.insert('users', firebaseUser.toMap());
+    final newUser = User(
+      id: 0,
+      name: name,
+      email: email,
+      password: password,
+      role: role,
+    );
+    
+    if (existingUsers.isEmpty) {
+      await db.insert('users', newUser.toMap());
+    } else {
+      await db.update(
+        'users',
+        newUser.toMap(),
+        where: 'email = ?',
+        whereArgs: [email],
+      );
     }
     
-    return firebaseUser;
+    return newUser;
+  } catch (e) {
+    print('Ошибка регистрации: $e');
+    return null;
   }
+}
 
 Future<User?> login(String email, String password) async {
   try {
@@ -34,24 +70,46 @@ Future<User?> login(String email, String password) async {
     
     final userDoc = await _firestore
         .collection('users')
-        .where('email', isEqualTo: email)
+        .doc(userCredential.user!.uid)
         .get();
     
     String role = 'user';
-    if (userDoc.docs.isNotEmpty) {
-      role = userDoc.docs.first.data()['role'] ?? 'user';
+    String name = email.split('@').first;
+    
+    if (userDoc.exists) {
+      role = userDoc.data()?['role'] ?? 'user';
+      name = userDoc.data()?['name'] ?? name;
     }
     
     final db = await _dbHelper.open();
-    final localUser = User(
-      id: 0,
-      name: userDoc.docs.first.data()['name'] ?? email.split('@').first,
-      email: email,
-      password: password,
-      role: role,
+    final existingUsers = await db.query(
+      'users',
+      where: 'email = ?',
+      whereArgs: [email],
     );
     
-    await db.insert('users', localUser.toMap());
+    User? localUser;
+    if (existingUsers.isNotEmpty) {
+      localUser = User.fromMap(existingUsers.first);
+      await db.update(
+        'users',
+        {
+          'name': name,
+          'role': role,
+        },
+        where: 'id = ?',
+        whereArgs: [localUser.id],
+      );
+    } else {
+      localUser = User(
+        id: 0,
+        name: name,
+        email: email,
+        password: password,
+        role: role,
+      );
+      await db.insert('users', localUser.toMap());
+    }
     
     return localUser;
   } catch (e) {
