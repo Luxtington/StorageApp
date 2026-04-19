@@ -17,7 +17,6 @@ Future<User?> register(String name, String email, String password) async {
       password: password,
     );
     
-
     final usersCount = await _firestore.collection('users').get();
     String role = usersCount.docs.isEmpty ? 'admin' : 'user';
     
