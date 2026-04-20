@@ -114,16 +114,33 @@ class _AddProductScreenState extends State<AddProductScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('Добавление товара'),
+        title: const Text(
+          'Добавление товара',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: const Color(0xFF1565C0),
+        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Card(
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -136,58 +153,64 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
 
-                      Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: _selectedImage != null
-                            ? Container(
-                                height: 200,
-                                width: double.infinity,
-                                child: Image.file(
-                                  _selectedImage!,
-                                  fit: BoxFit.cover,
-                                ),
-                              )
-                            : InkWell(
-                                onTap: _pickImage,
-                                child: Container(
-                                  height: 150,
-                                  width: double.infinity,
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade100,
-                                    borderRadius: BorderRadius.circular(8),
+                      // Загрузка изображения
+                      GestureDetector(
+                        onTap: _pickImage,
+                        child: Container(
+                          height: 180,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: _selectedImage != null
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Image.file(
+                                    _selectedImage!,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
                                   ),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.add_photo_alternate,
-                                        size: 50,
+                                )
+                              : Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.cloud_upload,
+                                      size: 50,
+                                      color: Colors.grey.shade500,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Нажмите для загрузки фото',
+                                      style: TextStyle(
                                         color: Colors.grey.shade600,
                                       ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Нажмите для загрузки изображения',
-                                        style: TextStyle(
-                                          color: Colors.grey.shade600,
-                                        ),
+                                    ),
+                                    Text(
+                                      'Рекомендуемый размер: 800x800',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade500,
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
-                              ),
+                        ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
 
                       TextFormField(
                         controller: _nameController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Название товара *',
-                          border: OutlineInputBorder(),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          prefixIcon: const Icon(Icons.label),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -196,13 +219,17 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
 
                       TextFormField(
                         controller: _descriptionController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Описание *',
-                          border: OutlineInputBorder(),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          prefixIcon: const Icon(Icons.description),
+                          alignLabelWithHint: true,
                         ),
                         maxLines: 3,
                         validator: (value) {
@@ -212,34 +239,38 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
 
                       TextFormField(
                         controller: _priceController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Цена',
-                          border: OutlineInputBorder(),
-                          prefixText: '₽ ',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          prefixIcon: const Icon(Icons.attach_money),
+                          suffixText: '₽',
                         ),
                         keyboardType: TextInputType.number,
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
 
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed:
-                              _savedImagePath == null ? null : _generateQRCode,
+                          onPressed: _savedImagePath == null ? null : _generateQRCode,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                _savedImagePath == null ? Colors.grey : Colors.blue,
+                            backgroundColor: _savedImagePath == null ? Colors.grey : const Color(0xFF1565C0),
                             padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           child: Text(
                             _savedImagePath == null
                                 ? 'Сначала загрузите изображение'
                                 : 'Сгенерировать QR-код',
-                            style: const TextStyle(fontSize: 16),
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                           ),
                         ),
                       ),
@@ -251,9 +282,20 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
             if (_generatedProduct != null && _qrCodeData != null) ...[
               const SizedBox(height: 20),
-              Card(
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
                       const Text(
@@ -264,26 +306,42 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      QrImageView(
-                        data: _qrCodeData!,
-                        version: QrVersions.auto,
-                        size: 200,
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: QrImageView(
+                          data: _qrCodeData!,
+                          version: QrVersions.auto,
+                          size: 180,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Товар: ${_generatedProduct!.name}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        _generatedProduct!.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          ElevatedButton.icon(
-                            onPressed: _saveProduct,
-                            icon: const Icon(Icons.save),
-                            label: const Text('Сохранить'),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _saveProduct,
+                          icon: const Icon(Icons.save),
+                          label: const Text('Сохранить товар'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                        ],
+                        ),
                       ),
                     ],
                   ),

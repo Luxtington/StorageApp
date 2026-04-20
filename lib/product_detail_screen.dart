@@ -21,6 +21,7 @@ class ProductDetailScreen extends StatefulWidget {
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   late Product _product;
   final ProductService _productService = ProductService();
+  bool _isUpdating = false;
 
   @override
   void initState() {
@@ -40,101 +41,258 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: Text(_product.name),
+        title: Text(
+          _product.name,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: const Color(0xFF1565C0),
+        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.qr_code),
             onPressed: () => _showQRCodeDialog(context),
-            tooltip: 'Показать QR-код',
+            tooltip: 'QR-код',
           ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+            // Hero анимация для изображения
+            Hero(
+              tag: 'product_image_${_product.id}',
+              child: Container(
+                height: 280,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
                 child: ProductImage(
                   imagePath: _product.imagePath,
                   width: double.infinity,
-                  height: 200,
+                  height: 280,
                   fit: BoxFit.cover,
                 ),
               ),
             ),
-            const SizedBox(height: 20),
-
-            Card(
+            // Анимация появления контента
+            TweenAnimationBuilder(
+              duration: const Duration(milliseconds: 400),
+              tween: Tween<double>(begin: 0, end: 1),
+              builder: (context, double value, child) {
+                return Opacity(
+                  opacity: value,
+                  child: Transform.translate(
+                    offset: Offset(0, 20 * (1 - value)),
+                    child: child,
+                  ),
+                );
+              },
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _product.name,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        if (_product.price != null)
+                          TweenAnimationBuilder(
+                            duration: const Duration(milliseconds: 300),
+                            tween: Tween<double>(begin: 0, end: 1),
+                            builder: (context, double scaleValue, child) {
+                              return Transform.scale(
+                                scale: scaleValue,
+                                child: child,
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF1565C0), Color(0xFF0D47A1)],
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${_product.price} ₽',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _product.status == ProductStatus.available
+                            ? Colors.green.shade100
+                            : Colors.red.shade100,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _product.status == ProductStatus.available
+                                ? Icons.check_circle
+                                : Icons.cancel,
+                            size: 16,
+                            color: _product.status == ProductStatus.available
+                                ? Colors.green.shade800
+                                : Colors.red.shade800,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _product.status == ProductStatus.available
+                                ? 'В наличии'
+                                : 'Выдан',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: _product.status == ProductStatus.available
+                                  ? Colors.green.shade800
+                                  : Colors.red.shade800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
                     const Text(
-                      'Информация о товаре',
+                      'Описание',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const Divider(),
-                    _buildInfoRow('ID', _product.id),
-                    _buildInfoRow('Название', _product.name),
-                    _buildInfoRow('Описание', _product.description),
-                    if (_product.price != null)
-                      _buildInfoRow('Цена', '${_product.price} ₽'),
-                    _buildInfoRow(
-                      'Статус',
-                      _product.status == ProductStatus.available
-                          ? 'Свободен'
-                          : 'Занят',
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        _product.description,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey.shade800,
+                          height: 1.5,
+                        ),
+                      ),
                     ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Характеристики',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          _buildInfoRow('ID товара', _product.id),
+                          const Divider(),
+                          _buildInfoRow('Статус', _product.status == ProductStatus.available ? 'В наличии' : 'Выдан'),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    // Анимированная кнопка действия
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isUpdating ? null : _toggleProductStatus,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _product.status == ProductStatus.available
+                              ? Colors.green
+                              : Colors.orange,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 2,
+                        ),
+                        child: _isUpdating
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    _product.status == ProductStatus.available
+                                        ? Icons.shopping_cart
+                                        : Icons.assignment_return,
+                                    color: Colors.white,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _product.status == ProductStatus.available
+                                        ? 'Взять товар'
+                                        : 'Вернуть товар',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
                   ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _toggleProductStatus,
-                icon: Icon(
-                  _product.status == ProductStatus.available
-                      ? Icons.shopping_cart
-                      : Icons.assignment_return,
-                ),
-                label: Text(
-                  _product.status == ProductStatus.available
-                      ? 'Взять товар'
-                      : 'Вернуть товар',
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _product.status == ProductStatus.available
-                      ? Colors.green
-                      : Colors.orange,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            Center(
-              child: ElevatedButton.icon(
-                onPressed: () => _showQRCodeDialog(context),
-                icon: const Icon(Icons.qr_code),
-                label: const Text('Показать QR-код товара'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
-                  ),
                 ),
               ),
             ),
@@ -146,27 +304,36 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 80,
+            width: 100,
             child: Text(
-              '$label:',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.grey,
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
               ),
             ),
           ),
-          Expanded(child: Text(value)),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
   Future<void> _toggleProductStatus() async {
+    setState(() => _isUpdating = true);
+    
     bool success;
     String message;
 
@@ -178,12 +345,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       message = 'Товар "${_product.name}" возвращен';
     }
 
+    setState(() => _isUpdating = false);
+
     if (success) {
       await _getActualProduct();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
           backgroundColor: Colors.green,
+          duration: const Duration(milliseconds: 800),
         ),
       );
     } else {

@@ -30,7 +30,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     setState(() => _isLoading = true);
     
     final db = await _productService.dbHelper.open();
-    final historyData = await db.query('product_history');
+    final historyData = await db.query('product_history', orderBy: 'taken_at DESC');
     history = historyData.map((h) => ProductHistory.fromMap(h)).toList();
     
     for (var h in history) {
@@ -59,9 +59,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('История операций'),
-        backgroundColor: Colors.blue,
+        title: const Text(
+          'История операций',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: const Color(0xFF1565C0),
+        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -73,23 +78,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : history.isEmpty
-              ? const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.history, size: 80, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text(
-                        'История пуста',
-                        style: TextStyle(fontSize: 18, color: Colors.grey),
-                      ),
-                      Text(
-                        'Никто еще не брал товары',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                )
+              ? _buildEmptyState()
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: history.length,
@@ -99,8 +88,19 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     final userName = userNames[h.userId] ?? 'Загрузка...';
                     final isReturned = h.returnedAt != null;
                     
-                    return Card(
+                    return Container(
                       margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Column(
@@ -108,12 +108,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           children: [
                             Row(
                               children: [
-                                Icon(
-                                  isReturned 
-                                      ? Icons.assignment_return 
-                                      : Icons.shopping_cart,
-                                  color: isReturned ? Colors.green : Colors.orange,
-                                  size: 24,
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: isReturned ? Colors.green.shade100 : Colors.orange.shade100,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Icon(
+                                    isReturned ? Icons.assignment_return : Icons.shopping_cart,
+                                    color: isReturned ? Colors.green : Colors.orange,
+                                    size: 20,
+                                  ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
@@ -126,13 +131,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                   ),
                                 ),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
                                     color: isReturned ? Colors.green : Colors.orange,
-                                    borderRadius: BorderRadius.circular(4),
+                                    borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text(
                                     isReturned ? 'Возвращен' : 'Взят',
@@ -145,50 +147,45 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 ),
                               ],
                             ),
-                            const Divider(),
-                            
+                            const SizedBox(height: 16),
                             Row(
                               children: [
-                                const Icon(Icons.person, size: 16, color: Colors.grey),
+                                Icon(Icons.person_outline, size: 16, color: Colors.grey.shade500),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Пользователь: $userName',
-                                  style: const TextStyle(fontSize: 14),
+                                  userName,
+                                  style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 8),
-                            
                             Row(
                               children: [
-                                const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
+                                Icon(Icons.calendar_today, size: 16, color: Colors.grey.shade500),
                                 const SizedBox(width: 8),
                                 Text(
                                   'Взят: ${_formatDateTime(h.takenAt)}',
-                                  style: const TextStyle(fontSize: 14),
+                                  style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
                                 ),
                               ],
                             ),
-                            
                             if (isReturned) ...[
                               const SizedBox(height: 8),
                               Row(
                                 children: [
-                                  const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
+                                  Icon(Icons.calendar_today, size: 16, color: Colors.grey.shade500),
                                   const SizedBox(width: 8),
                                   Text(
                                     'Возвращен: ${_formatDateTime(h.returnedAt!)}',
-                                    style: const TextStyle(fontSize: 14),
+                                    style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
                                   ),
                                 ],
                               ),
                             ],
-                            
-
                             const SizedBox(height: 8),
                             Text(
                               'ID товара: ${h.productId}',
-                              style: const TextStyle(fontSize: 10, color: Colors.grey),
+                              style: TextStyle(fontSize: 10, color: Colors.grey.shade400),
                             ),
                           ],
                         ),
@@ -196,6 +193,27 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     );
                   },
                 ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.history, size: 80, color: Colors.grey.shade400),
+          const SizedBox(height: 16),
+          Text(
+            'История пуста',
+            style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Никто еще не брал товары',
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+          ),
+        ],
+      ),
     );
   }
 
