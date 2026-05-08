@@ -61,7 +61,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Hero анимация для изображения
             Hero(
               tag: 'product_image_${_product.id}',
               child: Container(
@@ -85,7 +84,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 ),
               ),
             ),
-            // Анимация появления контента
             TweenAnimationBuilder(
               duration: const Duration(milliseconds: 400),
               tween: Tween<double>(begin: 0, end: 1),
@@ -242,7 +240,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    // Анимированная кнопка действия
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
                       width: double.infinity,

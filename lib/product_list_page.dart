@@ -46,7 +46,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
       appBar: AppBar(
         title: const Text(
           'Складской учет',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            ),
         ),
         backgroundColor: const Color(0xFF1565C0),
         elevation: 0,
@@ -60,10 +63,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
         ],
       ),
       body: _isLoading
-          ? _buildShimmerLoading() // Анимация загрузки
+          ? _buildShimmerLoading()
           : products.isEmpty
               ? _buildEmptyState()
-              : RefreshIndicator( // Обновление свайпом
+              : RefreshIndicator(
                   onRefresh: _loadProducts,
                   child: ListView.builder(
                     padding: const EdgeInsets.all(16),
@@ -75,8 +78,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 ),
     );
   }
-
-  // Анимация загрузки (Shimmer эффект)
+  
   Widget _buildShimmerLoading() {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -133,12 +135,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
     );
   }
 
-  // Анимированная карточка товара
   Widget _buildAnimatedProductCard(Product product, int index) {
     final isAvailable = product.status == ProductStatus.available;
     
     return TweenAnimationBuilder(
-      duration: Duration(milliseconds: 300 + (index * 50)), // Задержка для каждой карточки
+      duration: Duration(milliseconds: 300 + (index * 50)),
       tween: Tween<double>(begin: 0, end: 1),
       builder: (context, double value, child) {
         return Opacity(

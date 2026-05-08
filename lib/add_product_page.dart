@@ -155,7 +155,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Загрузка изображения
                       GestureDetector(
                         onTap: _pickImage,
                         child: Container(
@@ -248,8 +247,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          prefixIcon: const Icon(Icons.attach_money),
-                          suffixText: '₽',
+                          prefixIcon: const Icon(Icons.attach_money)
                         ),
                         keyboardType: TextInputType.number,
                       ),
@@ -270,7 +268,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             _savedImagePath == null
                                 ? 'Сначала загрузите изображение'
                                 : 'Сгенерировать QR-код',
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black
+                              ),
                           ),
                         ),
                       ),
