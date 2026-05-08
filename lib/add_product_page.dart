@@ -247,7 +247,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          prefixIcon: const Icon(Icons.attach_money)
+                          prefixIcon: const Icon(Icons.attach_money),
+                          suffixText: '₽',
                         ),
                         keyboardType: TextInputType.number,
                       ),
